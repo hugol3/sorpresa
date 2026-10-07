@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>✨</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden}
+body{background:#030511;color:#fff;font-family:Georgia,serif}
+canvas{position:fixed;inset:0;width:100%;height:100%}
+#src{display:none}
+.intro
+{
+    position:fixed;
+    inset:0;
+    display:grid;
+    place-content:center;
+    text-align:center;
+    padding:24px;
+    transition:1s;
+    z-index:2
+}
+.intro.hide
+{
+    opacity:0;
+    transform:translateY(-25px);
+    pointer-events:none
+}
+h1
+{
+    font-size:clamp(30px,5vw,62px);
+    font-weight:400;
+    margin:0 0 14px;
+    text-shadow:0 0 20px #fff5
+}
+.sub
+{
+    font-size:clamp(17px,2.5vw,24px);
+    opacity:.88;margin-bottom:28px
+}
+button
+{
+    padding:15px 30px;
+    border-radius:999px;
+    border:1px solid #ffffff55;
+    background:#ffffff16;
+    color:white;
+    font-size:18px;
+    cursor:pointer;
+    backdrop-filter:blur(10px);
+    transition:.25s
+}
+button:hover
+{
+    transform:scale(1.05);
+    background:#ffffff28
+}
+.final
+{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:7%;
+    text-align:center;
+    opacity:0;
+    transform:translateY(18px);
+    transition:1.5s;
+    z-index:3;
+    pointer-events:none
+}
+.final.show
+{
+    opacity:1;transform:none
+}
+.msg
+{
+    font-size:clamp(28px,5vw,58px);
+    text-shadow:0 0 22px #fff8
+}
+.small
+{
+    font:16px Arial,sans-serif;
+    opacity:.75;
+    margin-top:10px
+}
+</style></head>
+<body>
+<canvas id="c"></canvas><img id="src" src="conejito-girasol.jpg">
+<div class="intro" id="intro">
+    <div>
+        <h1>Dicen que las flores amarillas se dan el 21 de septiembre…</h1>
+        <div class="sub">Llegaron un poquito tarde, pero con todo el cariño del universo.</div>
+        <button id="go">✨ Revela la magia</button>
+    </div>
+</div>
+<div class="final" id="final">
+    <div class="msg">Más vale tarde que nunca 🌻✨</div>
+    <div class="small">Un detalle especial para ti, con todo mi cariño.</div>
+</div>
+<script>
+(()=>{
+const c=document.querySelector('#c'),x=c.getContext('2d'),img=document.querySelector('#src'),go=document.querySelector('#go'),intro=document.querySelector('#intro'),fin=document.querySelector('#final');let W,H,dpr,stars=[],ps=[],run=false,start=0;
+const R=(a,b)=>a+Math.random()*(b-a),C=(n,a,b)=>Math.max(a,Math.min(b,n));
+function size()
+{
+    W=innerWidth;
+    H=innerHeight;
+    dpr=Math.min(devicePixelRatio||1,2);
+    c.width=W*dpr;c.height=H*dpr;
+    x.setTransform(dpr,0,0,dpr,0,0);
+    stars=Array.from({length:C(W*H/8500,90,230)},()=>({x:Math.random()*W,y:Math.random()*H,r:R(.4,1.7),a:R(.25,.9),p:Math.random()*7,s:R(.4,1.4)}));
+    if(run)makeTarget()
+}
+function makeTarget(){
+  let mw = 850,
+      s = Math.min(mw/img.naturalWidth, mw/img.naturalHeight, 1),
+      iw = Math.round(img.naturalWidth*s),
+      ih = Math.round(img.naturalHeight*s),
+      o = document.createElement('canvas'),
+      q = o.getContext('2d', {willReadFrequently: true});
+
+  o.width = iw; o.height = ih;
+  q.drawImage(img, 0, 0, iw, ih);
+
+  let d = q.getImageData(0, 0, iw, ih).data,
+      pts = [];
+
+  // Centro exacto del girasol
+  let sfCenterX = iw * 0.69;
+  let sfCenterY = ih * 0.28;
+  let sfRadius = iw * 0.16;
+
+  for(let y = 1; y < ih - 1; y += 2){
+    for(let xx = 1; xx < iw - 1; xx += 2){
+      let i = (y * iw + xx) * 4,
+          r = d[i],
+          g = d[i+1],
+          b = d[i+2],
+          v = (r + g + b) / 3;
+
+      let distToSfCenter = Math.hypot(xx - sfCenterX, y - sfCenterY);
+
+      // 1. Centro marrón del girasol (semillas distribuidas)
+      if (distToSfCenter < sfRadius) {
+        if (v < 110 && Math.random() < 0.14) {
+          pts.push({ x: xx, y: y, col: [255, 214, 120], r: 1.1 });
+        }
+        continue;
+      }
+
+      let isDarkLine = v < 135;
+
+      let iRight = (y * iw + (xx + 1)) * 4;
+      let iDown = ((y + 1) * iw + xx) * 4;
+      let vRight = (d[iRight] + d[iRight+1] + d[iRight+2]) / 3;
+      let vDown = (d[iDown] + d[iDown+1] + d[iDown+2]) / 3;
+      let isEdge = Math.abs(v - vRight) > 20 || Math.abs(v - vDown) > 20;
+
+      if (xx < 2 || xx > iw - 2 || y < 2 || y > ih - 2) continue;
+
+      if (isDarkLine || isEdge) {
+        // Delimitación precisa de zonas
+        let isFlowerPetals = (xx > iw * 0.46 && y < ih * 0.50) && !(xx < iw * 0.54 && y > ih * 0.22);
+        let isGreenStem = (g > r * 1.05 && g > b) || (xx > iw * 0.53 && y > ih * 0.50 && y < ih * 0.80);
+
+        let col;
+        if (isFlowerPetals) {
+          col = [255, 225, 130]; // Dorado para pétalos superiores
+        } else if (isGreenStem) {
+          col = [180, 240, 160]; // Verde brillante para tallo y hoja
+        } else {
+          col = [255, 182, 213]; // Rosa para Cooky (incluyendo orejas, cuerpo y cara)
+        }
+
+        pts.push({
+          x: xx, 
+          y: y, 
+          col: col, 
+          r: R(0.8, 1.6)
+        });
+      }
+    }
+  }
+
+  let fit = Math.min(W / (iw * 1.12), H / (ih * 1.12)),
+      ox = (W - iw * fit) / 2,
+      oy = (H - ih * fit) / 2;
+
+  ps = [];
+  let maxParticles = C(pts.length, 1600, 4200);
+  let step = Math.max(1, Math.floor(pts.length / maxParticles));
+
+  for(let i = 0; i < pts.length && ps.length < maxParticles; i += step){
+    let p = pts[i],
+        a = Math.random() * Math.PI * 2,
+        rad = Math.max(W, H) * R(.35, 1.15);
+
+    ps.push({
+      x: p.x * fit + ox + Math.cos(a) * rad,
+      y: p.y * fit + oy + Math.sin(a) * rad,
+      tx: p.x * fit + ox,
+      ty: p.y * fit + oy,
+      r: p.r,
+      tw: Math.random() * 7,
+      a: R(.7, 1),
+      col: p.col
+    });
+  }
+}
+function bg(t)
+{
+    let g=x.createRadialGradient(W*.5,H*.45,0,W*.5,H*.45,Math.max(W,H)*.75);
+    g.addColorStop(0,'#18235a');g.addColorStop(.48,'#0b1238');g.addColorStop(1,'#030511');
+    x.fillStyle=g;x.fillRect(0,0,W,H);for(let s of stars)
+    {
+        x.globalAlpha=s.a*(.65+.35*Math.sin(t*.001*s.s+s.p));
+        x.fillStyle='#fff';x.beginPath();x.arc(s.x,s.y,s.r,0,7);x.fill()
+    }
+    x.globalAlpha=1
+}
+function frame(t)
+{
+    bg(t);
+    if(run)for(let p of ps)
+        {
+            p.x+=(p.tx-p.x)*.075;p.y+=(p.ty-p.y)*.075;
+            let pulse=.72+.28*Math.sin(t*.006+p.tw);
+            x.globalAlpha=p.a*pulse;
+            x.fillStyle=`rgb(${p.col[0]},${p.col[1]},${p.col[2]})`;
+            x.beginPath();x.arc(p.x,p.y,p.r,0,7);
+            x.fill()
+        }
+    x.globalAlpha=1;requestAnimationFrame(frame)
+}
+    go.onclick=()=>{if(run)return;run=true;
+    intro.classList.add('hide');
+    start=performance.now();
+    makeTarget();
+    setTimeout(()=>fin.classList.add('show'),5200)};
+    img.onload=size;addEventListener('resize',size);
+    size();requestAnimationFrame(frame);
+})();
+</script></body></html>
